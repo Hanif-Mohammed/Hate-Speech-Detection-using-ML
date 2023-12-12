@@ -1,0 +1,52 @@
+#importing necessary libraries
+import numpy as np
+import pandas as pd
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+
+#importing natural language toolkit
+import re
+import nltk
+from nltk.util import pr
+stemmer=nltk.SnowballStemmer("english") #Snowball Stemmer Algorithm
+from nltk.corpus import stopwords
+import string
+stopword=set(stopwords.words("english"))
+
+df=pd.read_csv("twitter_data.csv")
+df.head()
+
+#creating a new column named label which shows language status
+df["label"]=df["class"].map({0:"Hate speech detected",1:"Offensive language detected",3:"No hate and v speech"})
+df.head()
+
+df=df[["tweet","label"]]
+df.head()
+
+#preprocessing the dataset
+#Removal of punctuation and capitlization,Tokenizing,Removal of stopwords,Stemming
+def clean(text):
+    text=str(text).lower()
+    text=re.sub('\[.*?\]','',text)
+    text=re.sub('https?://\S+|www\.\S+','',text)
+    text=re.sub('<.*?>+','',text)
+    text=re.sub('[%s]'% re.escape(string.punctuation),'',text)
+    text=re.sub('\n','',text)
+    text=re.sub('\w*\d\w*', '',text)
+    text=[word for word in text.split(' ')if word not in stopword]
+    text=" ".join(text)
+    text= [stemmer.stem(word) for word in text.split(' ')]
+    text=" ".join(text)
+    return text
+df["tweet"]=df["tweet"].apply(clean)
+df.head()
+    
+#train the dataset with decision tree classifier
+x=np.array(df["tweet"])
+y=np.array(df["label"])
+cv=CountVectorizer()
+x=cv.fit_transform(x)
+X_train, X_test, y_train, y_test = train_test_split(x,y,test_size=0.33,random_state=42)
+clf=DecisionTreeClassifier()
+clf.fit(X_train,y_train)
